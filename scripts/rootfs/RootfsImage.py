@@ -3,7 +3,7 @@ from scripts.Node import Node
 from scripts.Config import Config
 from scripts.rootfs.RootfsConfigurer import RootfsConfigurer
 
-import scripts.tmp.TmpUtils as TmpUtils
+import scripts.temp.TmpUtils as TmpUtils
 import scripts.Utilities as Utilities
 
 import os
