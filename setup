@@ -1,0 +1,92 @@
+#!/bin/python3
+
+from scripts.Config import Config
+from scripts.Logger import Logger
+from scripts.grub.BootableIso import BootableIso
+from scripts.rootfs.RootfsImage import RootfsImage
+from scripts.rootfs.RootfsVirtualMachine import RootfsVirtualMachine
+import scripts.Utilities as Utilities
+
+import sys
+import traceback
+import builtins
+import os
+
+config = Config()
+log = Logger("WOS_ENV")
+rootfs_image = RootfsImage(config, log, "./rootfs.img", "./airootfs.sfs", size=2 * 1024)  # 2GB
+
+
+def _exit(code):
+    log.info("Exit with code", code)
+    rootfs_image.close()
+    os.system("rm -rf tmp")
+    orig_exit(code)
+
+
+orig_exit = builtins.exit
+builtins.exit = _exit
+
+# Check for permissions
+if not os.geteuid() == 0:
+    log.panic("Script should be run as root.", exit_code=1)
+
+# Check for tools
+needed_tools = [
+    "dd",
+    "wget",
+    "git",
+    "mke2fs",
+    "mount",
+    "umount",
+    "chown",
+    "mknod",
+    "grub-mkrescue",
+    "xorriso",
+    {"cmd": "arch-chroot", "suggestion": "Consider installing 'arch-install-scripts' via pacman"},
+    {"cmd": "pacstrap", "suggestion": "Consider installing 'arch-install-scripts' via pacman"},
+]
+
+log.info("Checking environment")
+
+if not Utilities.is_tool("pacman"):
+    log.panic("This script is running on non-arch based distro "
+              "which is not supported.", exit_code=1)
+
+for tool in needed_tools:
+    if isinstance(tool, dict):
+        if not Utilities.is_tool(tool['cmd']):
+            log.panic("Command", tool['cmd'], "not found!", tool['suggestion'], exit_code=1)
+    else:
+        if not Utilities.is_tool(tool):
+            log.panic("Command", tool, "not found!", exit_code=1)
+
+
+# Create rootfs image
+try:
+    rootfs_image.setup_image()
+except AssertionError as e:
+    _, _, tb = sys.exc_info()
+    traceback.print_tb(tb) # Fixed format
+    tb_info = traceback.extract_tb(tb)
+    filename, line, func, text = tb_info[-1]
+
+    log.panic('An error occurred on line {} in statement {}'.format(line, text), exit_code=1)
+
+
+# Create iso
+bootable = BootableIso(log, "wos.iso", rootfs_image)
+bootable.create_iso()
+
+# Ask to test the system in vm
+user_input = Utilities.ask_user(
+        "Do you wish to test this rootfs in a VM?",
+        ('Y', 'N')
+    )
+
+if user_input == 'Y':
+    rootfs_vm = RootfsVirtualMachine(config, log, bootable)
+    rootfs_vm.run_vm()
+
+
+_exit(0)

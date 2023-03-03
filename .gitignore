@@ -1,0 +1,6 @@
+tmp/
+system/
+*.img
+*.sfs
+*.iso
+.rootfs_ready
