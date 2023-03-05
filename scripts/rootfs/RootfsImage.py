@@ -9,6 +9,29 @@ import scripts.Utilities as Utilities
 import os
 import time
 
+PACKAGES = [
+    # "linux",
+    # "linux-firmware",
+    "base",
+    # "vim",
+    # "sudo",
+    # "nano",
+    # "dhclient",
+    # "which",
+    # "curl",
+    # "wget",
+    # "grub",
+    # "efibootmgr",
+    # "iwd",
+    "python3",
+    "xorg",
+    "xorg-server",
+    "xorg-xinit",
+    "xf86-video",
+    "xf86-video-fbdev",
+    "xf86-video-vesa",
+]
+
 
 class RootfsImage(Node):
     def __init__(self, config, log, image_path, squashfs_file, size=2048):
@@ -25,20 +48,7 @@ class RootfsImage(Node):
         self.packages = []
         self.mounted = False
 
-        self.add_package("linux")
-        self.add_package("linux-firmware")
-        self.add_package("base")
-        self.add_package("vim")
-        self.add_package("sudo")
-        self.add_package("nano")
-        self.add_package("dhclient")
-        self.add_package("which")
-        self.add_package("curl")
-        self.add_package("wget")
-        self.add_package("grub")
-        self.add_package("efibootmgr")
-
-        for pkg in self.config.values['additional_packages']:
+        for pkg in self.config.values['additional_packages'] + PACKAGES:
             self.add_package(pkg)
 
     def add_package(self, pkg):
@@ -86,14 +96,14 @@ class RootfsImage(Node):
     def install_rootfs(self, mount_location):
         self.logger.info("Installing rootfs at", mount_location)
         code =  self.run_commands(
-            f"pacstrap -K {mount_location} {' '.join(self.packages)}",
+            f"pacstrap -K {mount_location}/ {' '.join(self.packages)}",
         )
 
         return code
 
     def create_squashfs(self, squashfs_file, mount_location):
         self.logger.info("Creating squashfs from", mount_location)
-        return self.run_command(f"mksquashfs {mount_location} {squashfs_file}")
+        return self.run_command(f"mksquashfs {mount_location}/ {squashfs_file}")
 
     def setup_image(self):
         self.logger.info("Setting up rootfs image at", self.image_path)
@@ -113,7 +123,6 @@ class RootfsImage(Node):
         assert self.format(self.image_path) == 0, "Unable to format image disk"
         assert self.mount(self.image_path, self.tmp_folder.get_path()) == 0, "Unable to mount image disk"
         self.install_rootfs(self.tmp_folder.get_path())
-        input()
         assert self.configurer.configure() == 0, "Unable to configure rootfs"
         assert self.create_squashfs(self.squashfs_file, self.tmp_folder.get_path()) == 0, "Unable to create squashfs disk"
         assert self.umount(self.tmp_folder.get_path()) == 0, "Unable to umount image disk"

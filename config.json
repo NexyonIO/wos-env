@@ -1,5 +1,5 @@
 {
     "vm_kvm": true,
-    "additional_packages": [
-    ]
+    "hostname": "nexyon",
+    "additional_packages": []
 }

@@ -14,7 +14,7 @@ import os
 
 config = Config()
 log = Logger("WOS_ENV")
-rootfs_image = RootfsImage(config, log, "./rootfs.img", "./airootfs.sfs", size=2 * 1024)  # 2GB
+rootfs_image = RootfsImage(config, log, "./rootfs.img", "./airootfs.sfs", size=4 * 1024)  # 2GB
 
 
 def _exit(code):
@@ -79,10 +79,11 @@ bootable = BootableIso(log, "wos.iso", rootfs_image)
 bootable.create_iso()
 
 # Ask to test the system in vm
-user_input = Utilities.ask_user(
-        "Do you wish to test this rootfs in a VM?",
-        ('Y', 'N')
-    )
+# user_input = Utilities.ask_user(
+#         "Do you wish to test this rootfs in a VM?",
+#         ('Y', 'N')
+#     )
+user_input = 'Y'
 
 if user_input == 'Y':
     rootfs_vm = RootfsVirtualMachine(config, log, bootable)

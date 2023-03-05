@@ -14,7 +14,7 @@ class TmpFolder:
         return self.is_opened
 
     def get_path(self):
-        return f"{os.getcwd()}/tmp/{self.folder_name}"
+        return f"{os.getcwd()}/tmp/{self.folder_name}/"
 
     def close(self):
         self.is_opened = False
